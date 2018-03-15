@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class SysPermissionController {
 	@Resource
 	private SysPermissionDao sysPermissionDao;
-	
+	//测试提交
 	@RequestMapping("/form")
 	public String form() { 
 		return "syspermission/permission_form";
@@ -65,7 +65,7 @@ public class SysPermissionController {
 	public SysPermission getUserById(Integer id) {
 		return sysPermissionDao.getById(id);
 	}	
-	
+	  
 	@RequestMapping("/list")
 	@ResponseBody
 	public List<SysPermission> list(Integer page,Integer rows,SysPermission condition,@RequestParam(defaultValue="id")String sort,@RequestParam(defaultValue="asc")String order){
