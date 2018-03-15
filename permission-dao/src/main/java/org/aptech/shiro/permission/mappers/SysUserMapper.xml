@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.aptech.shiro.permission.dao.SysUserDao">
+
+ 
+	<select id="selectByName" resultMap="userMap" parameterType="SysUser">
+		SELECT id,username,PASSWORD,salt,locked FROM sys_user WHERE username = #{username}
+	</select>
+ 
+	<!-- 批量删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.reflect.Array">
+		delete from sys_user where id in 
+		<foreach collection="array" item="id" open="(" close=")" separator=",">
+			#{id}
+		</foreach> 
+	</delete>
+	<!-- 添加用户 -->
+	<insert id="add" parameterType="SysUser" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO sys_user (username,PASSWORD,salt,locked) VALUES(#{username},#{password},#{salt},#{locked})
+	</insert>
+	
+	<!-- 添加用户，角色关系 -->
+		<insert id="addUserRole">
+			INSERT INTO sys_user_role(sys_user_id,sys_role_id) VALUES
+			<foreach collection="rids" item="id" separator=","  >
+				(#{userId},#{id})
+			</foreach> 
+		</insert>
+		
+	<!-- 修改之前删除角色关系 -->
+	<delete id="deleteRela" parameterType="int">
+		DELETE FROM sys_user_role WHERE sys_user_id = #{userId}
+	</delete>
+	<!-- 封装条件 -->
+	<sql id="conditionSql">
+		<if test="condition != null">
+			<where>
+				<if test="condition.username != null and condition.username != ''">
+					username like concat('%',#{condition.username},'%')
+				</if> 
+				  <if test="condition.roles != null and condition.roles.size > 0">
+					and id IN (SELECT sys_user_id FROM sys_user_role 
+					WHERE sys_role_id IN 
+					<foreach collection="condition.roles" open="(" close=")" separator="," item="role">
+						#{role.id}
+					</foreach> 
+					)
+				</if>  
+			
+			</where>
+		</if>
+	</sql>
+	
+	<!-- 用户映射 -->
+	<resultMap type="SysUser" id="userMap" autoMapping="true" >
+		<id column="id" property="id"/>
+		<collection property="roles" javaType="java.util.List" ofType="SysRole" column="id" select="getRolesByUserId" ></collection>
+	</resultMap>
+	
+	<select id="getById" resultMap="userMap" parameterType="int">
+		SELECT id,username,PASSWORD,salt,locked FROM sys_user WHERE id = #{id}
+	</select>
+	
+	<!-- 查询用户角色 -->
+	<select id="getRolesByUserId" parameterType="int" resultType="SysRole">
+		select id,name,available from sys_role where id in (select sys_role_id from sys_user_role where sys_user_id = #{id}) 
+	</select>
+	<!-- 查询用户 -->
+	<select id="getListByCondition" resultMap="userMap" >
+		SELECT id,username,PASSWORD,salt,locked FROM sys_user 
+		<include refid="conditionSql"></include>
+		order by ${column} ${orderBy}
+		limit #{start},#{limit}
+	</select>
+	
+	<!-- 修改用户 -->
+	<update id="update" parameterType="SysUser"> 
+		UPDATE sys_user SET username = #{username} , PASSWORD = #{password} ,salt = #{salt} ,locked = #{locked} WHERE id = #{id}
+	</update>
+	
+	<!-- 查询总条数 -->
+	<select id="getCount" resultType="int"> 
+		select count(1) from sys_user
+		<include refid="conditionSql"></include>
+	</select>
+	 
+</mapper>

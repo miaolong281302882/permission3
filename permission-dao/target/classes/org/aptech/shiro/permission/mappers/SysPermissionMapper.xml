@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.aptech.shiro.permission.dao.SysPermissionDao">
+	<insert id="add" parameterType="org.aptech.shiro.permission.pojo.SysPermission"
+		useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		insert into Sys_Permission(id,name text,type,url,percode,parentid,parentids,available)
+			values(  #{id},  #{name},  #{type},  #{url},  #{percode},  #{parentid},  #{parentids},  #{available}  )
+	</insert>
+	
+	<update id="update" parameterType="org.aptech.shiro.permission.pojo.SysPermission">
+		update Sys_Permission set id = #{id},name = #{text},type = #{type},url = #{url},percode = #{percode},parentid = #{parentid},parentids = #{parentids},available = #{available}
+			where id = #{id}
+	</update>
+	<select id="getPersByUserId" parameterType="int" resultMap="perMap">
+		SELECT id,name text,type,url,percode,parentid,parentids,available FROM sys_permission WHERE id IN (SELECT sys_permission_id FROM sys_role_permission WHERE sys_role_id IN (SELECT sys_role_id FROM sys_user_role WHERE sys_user_id = #{id}))
+	</select>
+	
+	<select id="getPermissionsByUserId" parameterType="int" resultType="string">
+		SELECT percode FROM sys_permission WHERE id IN 
+		(SELECT sys_permission_id FROM sys_role_permission WHERE sys_role_id IN 
+		(SELECT sys_role_id FROM sys_user_role WHERE sys_user_id = #{id})) 
+		and type = 'permission'
+	</select>
+	
+	<!-- 根据角色查询拥有的权限编号 -->
+	<select id="getPerIdsByRid" parameterType="int" resultType="java.lang.Integer">
+		SELECT sys_permission_id FROM sys_role_permission WHERE sys_role_id = #{id}
+	</select>
+	
+	<delete id="deletePersByRid" parameterType="int">
+		DELETE FROM sys_role_permission WHERE sys_role_id = #{id}
+	</delete>
+	
+	<insert id="allotPer">
+		INSERT INTO sys_role_permission (sys_role_id,sys_permission_id)
+		VALUES 
+		<foreach collection="perIds" item="item" separator=",">
+			(#{rid},#{item})
+		</foreach>
+	</insert>
+	
+	<delete id="deleteByIds" parameterType="java.lang.reflect.Array">
+		delete from Sys_Permission where id in
+		<foreach collection="array" item="item" open="(" close=")" separator=",">
+			#{item}
+		</foreach>
+	</delete>
+
+	<sql id="conditionSql">
+		<if test="condition != null">
+			<where>
+				<if test="condition.name != null and condition.name != ''">
+					and name like concat('%',#{condition.text},'%')
+				</if>
+				<if test="condition.url != null and condition.url != ''">
+					and url like concat('%',#{condition.url},'%')
+				</if>
+			</where>
+		</if>
+	</sql>
+	
+	<select id="getAll" resultMap="perMap">
+		select id,name text,type,url,percode,parentid,parentids,available from Sys_Permission where parentid is null
+	</select>
+	<resultMap type="SysPermission" id="perMap" autoMapping="true">
+		<id column="id" property="id"/>
+		<collection property="children" javaType="java.util.List" ofType="SysPermission" column="id" select="getChildrensByParId"></collection>
+	</resultMap>
+	<select id="getChildrensByParId" parameterType="int" resultType="SysPermission"> 
+		select id,name text,type,url,percode,parentid,parentids,available from Sys_Permission where parentid = #{id}
+	</select>
+	<select id="getById" parameterType="int" resultType="org.aptech.shiro.permission.pojo.SysPermission">
+		select id,name text,type,url,percode,parentid,parentids,available from Sys_Permission where id = #{id}
+	</select>
+	
+	<select id="getListByCondition" resultType="org.aptech.shiro.permission.pojo.SysPermission">
+		select id,name text,type,url,percode,parentid,parentids,available from Sys_Permission
+			<include refid="conditionSql"></include>
+		order by ${column} ${orderBy}
+			limit #{start},#{limit}
+	</select>
+	<select id="getCountByCondition" resultType="int">
+		select count(1) from Sys_Permission
+			<include refid="conditionSql"></include>
+	</select>
+</mapper>

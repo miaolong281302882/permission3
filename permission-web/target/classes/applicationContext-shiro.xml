@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- shiro配置文件 -->
+	<!-- shiro的web过滤器 -->
+	<bean id = "shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<!-- 认证提交地址，如果没有认证将会请求此地址进行认证，请求此地址将由formAuthenticationFilter进行表单认证 -->
+		<property name="loginUrl" value="/user/login"></property>
+		<property name="unauthorizedUrl" value="page403.jsp"></property>
+		<property name="successUrl" value="/user/main"></property>
+		<property name="securityManager" ref="securityManager"></property>
+		<!-- 自定义的过滤器解决登陆成功不跳主页面 -->
+		<property name="filters">
+			<map>
+				<entry key="authc" value-ref="myFilter"></entry>
+			</map>
+		</property>
+		
+		<!-- shiro的过滤器链配置 -->
+		<property name="filterChainDefinitions">
+			<value>
+				/user/logout = logout
+				<!-- 配置匿名访问 -->
+				/js/** = anon
+				/images/** = anon
+				/css/** = anon
+				/fonts/** = anon
+				<!-- 所有地址都需要身份认证-->
+				/** = authc 
+			</value>
+		</property> 
+	</bean>
+	<!-- 自定义authc 过滤器-->
+	<bean id = "myFilter" class="org.aptech.shiro.permission.shiro.MyFromAutheticationFilter"></bean>
+	<!-- 安全管理器 -->
+		<bean id = "securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+			<property name="realm" ref="userRealm"></property>
+		</bean>
+	<!-- 自定义的Realm --> 
+	<bean id = "userRealm" class="org.aptech.shiro.permission.shiro.MyRealm">
+		<property name="sysUserDao" ref="sysUserDao"></property> 
+		<property name="sysPermissionDao" ref="sysPermissionDao"></property>
+		<property name="credentialsMatcher" ref="credentialsMatcher"></property>
+	</bean>
+	<!-- 设置属性 -->
+	<!-- <bean id = "sysUserDao" class="org.aptech.shiro.permission.dao.SysUserDao"></bean>
+	<bean id = "sysPermissionDao" class = "org.aptech.shiro.permission.dao.SysPermissionDao"> </bean>
+	 -->
+	<!-- 设置凭证认证器（也就是用什么方法判断密码是否正确 加颜值 和散列次数） -->
+	<bean id = "credentialsMatcher" class = "org.apache.shiro.authc.credential.HashedCredentialsMatcher"> 
+		<property name="hashAlgorithmName" value="md5"></property>
+		<property name="hashIterations" value="1"></property> 
+	</bean>
+	
+	 
+</beans>
